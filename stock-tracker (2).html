@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="存股追蹤">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23000'/%3E%3Ctext y='.9em' font-size='72' x='12'%3E📈%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" id="pwa-manifest">
+<title>存股追蹤器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#000;--bg2:#1c1c1e;--bg3:#2c2c2e;--bg4:#3a3a3c;
+    --text:#fff;--text2:#ebebf5cc;--text3:#8e8e93;--text4:#48484a;
+    --blue:#0a84ff;--green:#30d158;--red:#ff453a;--yellow:#ffd60a;--purple:#bf5af2;
+    --border:#38383a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',-apple-system,sans-serif;min-height:100%;overflow-x:hidden;}
+  ::-webkit-scrollbar{display:none;}
+  input,select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:13px 14px;border-radius:10px;font-family:inherit;font-size:16px;width:100%;outline:none;-webkit-appearance:none;appearance:none;}
+  input:focus{border-color:var(--blue);}
+  input::placeholder{color:var(--text4);}
+  input[type="date"]{color-scheme:dark;}
+  button{cursor:pointer;font-family:inherit;border:none;-webkit-appearance:none;}
+  .mono{font-variant-numeric:tabular-nums;}
+  .card{background:var(--bg2);border-radius:16px;padding:16px;margin-bottom:12px;}
+  .card2{background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:8px;}
+  .btn{border-radius:12px;padding:14px 0;font-size:16px;font-weight:600;width:100%;transition:opacity .15s;}
+  .btn:active{opacity:.6;}
+  .btn-blue{background:var(--blue);color:#fff;}
+  .btn-red{background:var(--red);color:#fff;}
+  .btn-green{background:var(--green);color:#fff;}
+  .btn-gray{background:var(--bg3);color:var(--text);}
+  .btn-sm{border-radius:8px;padding:7px 13px;font-size:13px;font-weight:600;transition:opacity .15s;}
+  .btn-sm:active{opacity:.6;}
+  .row{display:flex;align-items:center;justify-content:space-between;}
+  .label{font-size:13px;color:var(--text3);margin-bottom:7px;}
+  .section-title{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:20px 0 10px;}
+  .chip{background:var(--bg3);border-radius:8px;padding:3px 9px;font-size:12px;color:var(--text3);display:inline-block;}
+  .pill{border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;display:inline-block;}
+  /* Month picker */
+  .month-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
+  .month-btn{padding:8px 4px;border-radius:8px;font-size:13px;font-weight:600;background:var(--bg3);color:var(--text3);border:1px solid var(--border);cursor:pointer;font-family:inherit;transition:all .15s;}
+  .month-btn.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .month-btn:active{opacity:.7;}
+  /* Nav */
+  #nav{position:fixed;bottom:0;left:0;right:0;background:rgba(28,28,30,.97);border-top:1px solid var(--border);display:flex;padding:8px 0;padding-bottom:calc(8px + env(safe-area-inset-bottom,0px));z-index:100;}
+  .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;color:var(--text3);font-size:10px;font-family:inherit;padding:4px 0;transition:color .15s;}
+  .nav-btn.active{color:var(--blue);}
+  .nav-icon{font-size:22px;line-height:1;}
+  #app{padding-left:16px;padding-right:16px;padding-bottom:calc(env(safe-area-inset-bottom,0px)+90px);max-width:430px;margin:0 auto;padding-top:100px;}
+  .page{display:none;}
+  .page.active{display:block;animation:fadeIn .2s ease;}
+  #header{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top,44px)+10px) 20px 12px;background:rgba(0,0,0,.97);z-index:50;}
+  #modal-wrap{position:fixed;inset:0;z-index:200;}
+  #overlay{position:absolute;inset:0;background:rgba(0,0,0,.65);}
+  #sheet{position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-radius:20px 20px 0 0;padding:20px;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow-y:auto;}
+  /* Dividend alert banner */
+  #div-alert{margin-bottom:12px;display:none;}
+  .alert-card{background:#30d15818;border:1px solid var(--green);border-radius:14px;padding:14px 16px;}
+  /* Animations */
+  @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+  .pos{color:var(--green)!important;} .neg{color:var(--red)!important;} .zer{color:var(--text3)!important;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+  .empty{text-align:center;padding:50px 0;color:var(--text4);}
+  .empty-icon{font-size:44px;margin-bottom:12px;}
+  .stat-box .stat-label{font-size:11px;color:var(--text3);margin-bottom:3px;}
+  .stat-box .stat-val{font-size:13px;font-weight:600;}
+  .spin{display:inline-block;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #toast{position:fixed;top:calc(env(safe-area-inset-top,44px)+70px);left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--text);padding:10px 20px;border-radius:20px;font-size:14px;z-index:300;display:none;white-space:nowrap;border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div style="font-size:24px;font-weight:900;letter-spacing:-0.5px">存股追蹤</div>
+  <div id="header-date" style="font-size:12px;color:var(--text3);margin-top:2px"></div>
+</div>
+<div id="toast"></div>
+
+<div id="app">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <!-- Dividend alert banners (injected by JS) -->
+    <div id="div-alert"></div>
+
+    <div class="card" style="background:linear-gradient(135deg,#0a84ff18,#30d15818);border:1px solid #0a84ff33">
+      <div style="font-size:13px;color:var(--text3);margin-bottom:4px">持股市值</div>
+      <div class="mono" id="total-mkt" style="font-size:38px;font-weight:900">$0</div>
+      <div style="display:flex;gap:20px;margin-top:10px;flex-wrap:wrap">
+        <div><div style="font-size:11px;color:var(--text3)">總成本</div><div class="mono" id="total-cost-d" style="font-weight:700">$0</div></div>
+        <div><div style="font-size:11px;color:var(--text3)">未實現損益</div><div class="mono" id="unreal-pnl" style="font-weight:700">$0</div></div>
+        <div><div style="font-size:11px;color:var(--text3)">已實現損益</div><div class="mono" id="real-pnl" style="font-weight:700">$0</div></div>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="card" style="background:#30d15818;border:1px solid #30d15833;margin-bottom:0">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px" id="this-month-label">本月預估股息</div>
+        <div class="mono" id="div-this" style="font-size:22px;font-weight:800;color:var(--green)">$0</div>
+      </div>
+      <div class="card" style="background:#0a84ff18;border:1px solid #0a84ff33;margin-bottom:0">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px" id="next-month-label">下月預估股息</div>
+        <div class="mono" id="div-next" style="font-size:22px;font-weight:800;color:var(--blue)">$0</div>
+      </div>
+      <div class="card" style="background:#ffd60a18;border:1px solid #ffd60a33;margin-bottom:0">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">年度預估股息</div>
+        <div class="mono" id="div-year" style="font-size:22px;font-weight:800;color:var(--yellow)">$0</div>
+      </div>
+      <div class="card" style="background:#bf5af218;border:1px solid #bf5af233;margin-bottom:0">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">累計收到股息</div>
+        <div class="mono" id="div-received" style="font-size:22px;font-weight:800;color:var(--purple)">$0</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <div style="font-weight:700;font-size:15px">股價 &amp; 配息月查詢</div>
+          <div id="ai-msg" style="font-size:12px;color:var(--text3);margin-top:2px">從 Yahoo Finance 抓取股價與配息月</div>
+        </div>
+        <button class="btn btn-blue" onclick="queryPriceAndDiv()" id="ai-btn" style="width:72px;padding:10px 0;font-size:14px;border-radius:10px">查詢</button>
+      </div>
+      <div id="ai-updated" style="font-size:11px;color:var(--text4);margin-top:8px;display:none"></div>
+    </div>
+
+    <div class="card" style="border:1px solid var(--border)">
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px">📲 每日提醒</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.6">台股收盤（13:35）後提醒你按查詢<br><span style="color:var(--yellow)">詳細設定見「說明」頁 →</span></div>
+    </div>
+
+    <div class="section-title">持股快覽</div>
+    <div id="dashboard-holdings"></div>
+  </div>
+
+  <!-- HOLDINGS -->
+  <div class="page" id="page-holdings">
+    <div class="row" style="margin-bottom:16px">
+      <div style="font-size:22px;font-weight:900">我的持股</div>
+      <button class="btn-sm btn-blue" onclick="openModal('addHolding')" style="color:#fff">＋ 新增</button>
+    </div>
+    <div id="holdings-list"></div>
+  </div>
+
+  <!-- DIVIDENDS -->
+  <div class="page" id="page-dividends">
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">股息紀錄</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px">累計收到 <span class="mono" id="div-total-h" style="color:var(--purple);font-weight:700">$0</span></div>
+    <div class="section-title">月曆總覽</div>
+    <div class="grid4" id="div-calendar" style="margin-bottom:16px"></div>
+    <div class="section-title">入帳明細</div>
+    <div id="div-history-list"></div>
+  </div>
+
+  <!-- SELLS -->
+  <div class="page" id="page-sells">
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">賣出紀錄</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px">已實現損益 <span class="mono" id="real-pnl-s" style="font-weight:700">$0</span></div>
+    <div id="sells-list"></div>
+  </div>
+
+  <!-- GUIDE -->
+  <div class="page" id="page-guide">
+    <div style="font-size:22px;font-weight:900;margin-bottom:16px">說明 &amp; 設定</div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button id="guide-tab-ios" onclick="switchGuide('ios')" style="flex:1;padding:10px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;background:var(--blue);color:#fff;border:none;cursor:pointer">🍎 iPhone</button>
+      <button id="guide-tab-android" onclick="switchGuide('android')" style="flex:1;padding:10px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:700;background:var(--bg3);color:var(--text3);border:none;cursor:pointer">🤖 Android</button>
+    </div>
+    <div id="guide-ios">
+      <div class="card"><div style="font-weight:800;font-size:16px;margin-bottom:12px">📲 加入 iPhone 主畫面</div><div id="guide-steps-1"></div></div>
+      <div class="card"><div style="font-weight:800;font-size:16px;margin-bottom:12px">⏰ 設定每日提醒（iOS）</div><div id="guide-steps-2"></div></div>
+    </div>
+    <div id="guide-android" style="display:none">
+      <div class="card"><div style="font-weight:800;font-size:16px;margin-bottom:12px">📲 安裝到 Android 主畫面</div><div id="guide-steps-android-install"></div></div>
+      <div class="card"><div style="font-weight:800;font-size:16px;margin-bottom:12px">⏰ 設定每日提醒（Android）</div><div id="guide-steps-android-notify"></div></div>
+    </div>
+    <div class="card"><div style="font-weight:800;font-size:16px;margin-bottom:12px">📖 日常使用流程</div><div id="guide-steps-3"></div></div>
+    <div class="card" style="background:#ff453a10;border:1px solid #ff453a33">
+      <div style="font-weight:700;color:var(--red);margin-bottom:6px">⚠ 注意</div>
+      <div style="font-size:13px;color:var(--text3);line-height:1.7">股價與配息月資料來自 Yahoo Finance，僅供參考。實際配息請以公司公告為準。</div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<nav id="nav">
+  <button class="nav-btn active" onclick="switchTab('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span><span>總覽</span></button>
+  <button class="nav-btn" onclick="switchTab('holdings')" id="nav-holdings"><span class="nav-icon">💼</span><span>持股</span></button>
+  <button class="nav-btn" onclick="switchTab('dividends')" id="nav-dividends"><span class="nav-icon">💰</span><span>股息</span></button>
+  <button class="nav-btn" onclick="switchTab('sells')" id="nav-sells"><span class="nav-icon">📋</span><span>賣出</span></button>
+  <button class="nav-btn" onclick="switchTab('guide')" id="nav-guide"><span class="nav-icon">❓</span><span>說明</span></button>
+</nav>
+
+<div id="modal-wrap" style="display:none">
+  <div id="overlay" onclick="closeModal()"></div>
+  <div id="sheet"></div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+// holdings: {code, name, shares, avgPrice, lots, divMonths:[1..12]}
+// stockInfo: {[code]: {name, price, divMonths, lastDivAmount, updatedAt}}
+// divHistory: {id, code, name, perShare, shares, total, date, period}
+// sells: {id, code, name, shares, sellPrice, avgCost, profit, date}
+let state = { holdings:[], sells:[], divHistory:[], stockInfo:{} };
+let currentModal = null;
+let selectedHolding = null;
+
+function save(){ localStorage.setItem('stdv4', JSON.stringify(state)); }
+function load(){
+  try{ const d=localStorage.getItem('stdv4'); if(d) state={...state,...JSON.parse(d)}; }catch{}
+  // migrate from old key
+  try{
+    if(!localStorage.getItem('stdv4') && localStorage.getItem('stdv3')){
+      const old=JSON.parse(localStorage.getItem('stdv3'));
+      state={...state,...old};
+      save();
+    }
+  }catch{}
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const now=new Date();
+const THIS_MONTH=now.getMonth()+1;
+const NEXT_MONTH=THIS_MONTH===12?1:THIS_MONTH+1;
+const MONTHS=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+
+function fmt(n,d=0){ if(isNaN(n))return'0'; return Number(n).toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function fmtDate(iso){ return new Date(iso).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}); }
+function pnlClass(v){ return v>0?'pos':v<0?'neg':'zer'; }
+function pnlSign(v){ return v>0?'+':''; }
+function getPrice(code){ return state.stockInfo[code]?.price||0; }
+
+// Get divMonths for a holding (merge from stockInfo and manual override on holding)
+function getDivMonths(h){
+  return h.divMonths || state.stockInfo[h.code]?.divMonths || [];
+}
+
+// Estimate per-share dividend for a given month from history
+function getEstimatedDiv(code, month){
+  const info = state.stockInfo[code];
+  if(!info) return 0;
+  // Use last known dividend amount if this is a div month
+  const months = info.divMonths || [];
+  if(!months.includes(month)) return 0;
+  return info.lastDivAmount || 0;
+}
+
+function getDivInMonth(h, month){
+  const months = getDivMonths(h);
+  if(!months.includes(month)) return 0;
+  return getEstimatedDiv(h.code, month) * h.shares;
+}
+
+// Check if holding already has a dividend recorded for current month+year
+function hasRecordedDivThisMonth(code){
+  const key = `${now.getFullYear()}-${String(THIS_MONTH).padStart(2,'0')}`;
+  return state.divHistory.some(d => d.code===code && d.period===key);
+}
+
+// ─── Tab & Modal ──────────────────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+tab).classList.add('active');
+  document.getElementById('nav-'+tab).classList.add('active');
+  renderAll();
+}
+
+function openModal(type, code){
+  selectedHolding = code ? state.holdings.find(h=>h.code===code) : null;
+  currentModal = type;
+  const wrap = document.getElementById('modal-wrap');
+  wrap.style.display = 'block';
+  const sheet = document.getElementById('sheet');
+  sheet.style.animation = 'none';
+  sheet.offsetHeight;
+  sheet.style.animation = 'slideUp .28s ease';
+  if(type==='addHolding')    renderAddHoldingModal();
+  if(type==='addSell')       renderAddSellModal();
+  if(type==='addDiv')        renderAddDivModal();
+  if(type==='deleteHolding') renderDeleteHoldingModal();
+  if(type==='editDivMonths') renderEditDivMonthsModal();
+  if(type==='holdingDetail') renderHoldingDetailModal();
+  if(type==='divPrompt')     renderDivPromptModal(code);
+}
+
+function openHoldingDetail(code){
+  selectedHolding = state.holdings.find(h=>h.code===code);
+  currentModal='holdingDetail';
+  document.getElementById('modal-wrap').style.display='block';
+  const sheet=document.getElementById('sheet');
+  sheet.style.animation='none'; sheet.offsetHeight; sheet.style.animation='slideUp .28s ease';
+  renderHoldingDetailModal();
+}
+
+function closeModal(){
+  document.getElementById('modal-wrap').style.display='none';
+  currentModal=null; selectedHolding=null;
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.style.display='block';
+  setTimeout(()=>t.style.display='none',2500);
+}
+
+// ─── Render All ───────────────────────────────────────────────────────────────
+function renderAll(){ renderDashboard(); renderHoldings(); renderDividends(); renderSells(); renderGuide(); }
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const totalCost   = state.holdings.reduce((s,h)=>s+h.shares*h.avgPrice,0);
+  const totalMkt    = state.holdings.reduce((s,h)=>s+h.shares*(getPrice(h.code)||h.avgPrice),0);
+  const unrealPnL   = totalMkt-totalCost;
+  const realPnL     = state.sells.reduce((s,v)=>s+v.profit,0);
+  const divThis     = state.holdings.reduce((s,h)=>s+getDivInMonth(h,THIS_MONTH),0);
+  const divNext     = state.holdings.reduce((s,h)=>s+getDivInMonth(h,NEXT_MONTH),0);
+  const divYear     = state.holdings.reduce((s,h)=>s+getDivMonths(h).reduce((ss,m)=>ss+getEstimatedDiv(h.code,m)*h.shares,0),0);
+  const divReceived = state.divHistory.reduce((s,d)=>s+d.total,0);
+
+  document.getElementById('total-mkt').textContent='$'+fmt(totalMkt);
+  document.getElementById('total-cost-d').textContent='$'+fmt(totalCost);
+  const up=document.getElementById('unreal-pnl'); up.textContent=pnlSign(unrealPnL)+'$'+fmt(unrealPnL); up.className='mono '+pnlClass(unrealPnL);
+  const rp=document.getElementById('real-pnl');   rp.textContent=pnlSign(realPnL)+'$'+fmt(realPnL);     rp.className='mono '+pnlClass(realPnL);
+  document.getElementById('this-month-label').textContent=THIS_MONTH+'月預估股息';
+  document.getElementById('next-month-label').textContent=NEXT_MONTH+'月預估股息';
+  document.getElementById('div-this').textContent='$'+fmt(divThis);
+  document.getElementById('div-next').textContent='$'+fmt(divNext);
+  document.getElementById('div-year').textContent='$'+fmt(divYear);
+  document.getElementById('div-received').textContent='$'+fmt(divReceived);
+
+  // Dividend alert banners
+  const alertEl = document.getElementById('div-alert');
+  const pending = state.holdings.filter(h=>{
+    const months=getDivMonths(h);
+    return months.includes(THIS_MONTH) && !hasRecordedDivThisMonth(h.code);
+  });
+  if(pending.length>0){
+    alertEl.style.display='block';
+    alertEl.innerHTML = pending.map(h=>`
+      <div class="alert-card" style="margin-bottom:8px">
+        <div class="row">
+          <div>
+            <div style="font-weight:700;color:var(--green)">💰 ${h.name} 本月有配息</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:3px">尚未記錄 ${THIS_MONTH} 月股息，點右側按鈕記錄</div>
+          </div>
+          <button class="btn-sm" style="background:var(--green);color:#fff;white-space:nowrap" onclick="openModal('divPrompt','${h.code}')">記錄</button>
+        </div>
+      </div>`).join('');
+  } else {
+    alertEl.style.display='none';
+  }
+
+  // Mini list
+  const el=document.getElementById('dashboard-holdings');
+  if(state.holdings.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">💼</div>尚無持股</div>'; return; }
+  el.innerHTML=state.holdings.map(h=>{
+    const price=getPrice(h.code)||h.avgPrice;
+    const pnl=(price-h.avgPrice)*h.shares;
+    const pct=((price-h.avgPrice)/h.avgPrice*100);
+    const divM=getDivMonths(h);
+    return `<div class="card2" onclick="openHoldingDetail('${h.code}')">
+      <div class="row">
+        <div><span style="font-weight:700">${h.name}</span> <span class="chip">${h.code}</span></div>
+        <div style="text-align:right">
+          <div class="mono ${pnlClass(pnl)}" style="font-weight:700">${pnlSign(pnl)}$${fmt(pnl)}</div>
+          <div class="mono ${pnlClass(pnl)}" style="font-size:12px">${pnlSign(pct)}${fmt(pct,2)}%</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;margin-top:7px;font-size:12px;color:var(--text3);flex-wrap:wrap">
+        <span>${fmt(h.shares)} 股</span>
+        <span>成本 $${fmt(h.avgPrice,2)}</span>
+        <span>現價 $${fmt(price,2)}</span>
+        ${divM.length>0?`<span>配息月：${divM.join('、')}月</span>`:'<span style="color:var(--text4)">尚未設定配息月</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── Holdings ─────────────────────────────────────────────────────────────────
+function renderHoldings(){
+  const el=document.getElementById('holdings-list');
+  if(state.holdings.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">💼</div>點「新增」開始記錄</div>'; return; }
+  el.innerHTML=state.holdings.map(h=>{
+    const price=getPrice(h.code)||h.avgPrice;
+    const mktVal=price*h.shares, cost=h.avgPrice*h.shares;
+    const pnl=mktVal-cost, pct=cost>0?(pnl/cost*100):0;
+    const divM=getDivMonths(h);
+    const lastDiv=state.stockInfo[h.code]?.lastDivAmount||0;
+    const yld=cost>0&&lastDiv>0?(lastDiv*divM.length*h.shares/cost*100):0;
+    const dm=getDivInMonth(h,THIS_MONTH);
+    const needsRecord=divM.includes(THIS_MONTH)&&!hasRecordedDivThisMonth(h.code);
+    return `<div class="card" style="${needsRecord?'border:1px solid var(--green)':''}">
+      <div class="row" style="margin-bottom:12px">
+        <div><span style="font-weight:800;font-size:17px">${h.name}</span> <span class="chip" style="margin-left:4px">${h.code}</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn-sm" style="background:#0a84ff22;color:var(--blue)" onclick="openModal('addHolding','${h.code}')">加碼</button>
+          <button class="btn-sm" style="background:#30d15822;color:var(--green)" onclick="openModal('addDiv','${h.code}')">入帳</button>
+          <button class="btn-sm" style="background:#ff453a22;color:var(--red)" onclick="openModal('addSell','${h.code}')">賣出</button>
+          <button class="btn-sm" style="background:#ff453a33;color:var(--red);border:1px solid #ff453a55" onclick="openModal('deleteHolding','${h.code}')">🗑</button>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="stat-box"><div class="stat-label">持股數</div><div class="stat-val mono">${fmt(h.shares)} 股</div></div>
+        <div class="stat-box"><div class="stat-label">平均成本</div><div class="stat-val mono">$${fmt(h.avgPrice,2)}</div></div>
+        <div class="stat-box"><div class="stat-label">現價</div><div class="stat-val mono">$${fmt(price,2)}</div></div>
+        <div class="stat-box"><div class="stat-label">市值</div><div class="stat-val mono">$${fmt(mktVal)}</div></div>
+        <div class="stat-box"><div class="stat-label">損益</div><div class="stat-val mono ${pnlClass(pnl)}">${pnlSign(pnl)}$${fmt(pnl)}</div></div>
+        <div class="stat-box"><div class="stat-label">報酬率</div><div class="stat-val mono ${pnlClass(pnl)}">${pnlSign(pct)}${fmt(pct,2)}%</div></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        ${divM.length>0
+          ? `<span class="pill" style="background:#30d15820;color:var(--green)">配息月：${divM.join('、')}月</span>`
+          : `<span class="pill" style="background:var(--bg3);color:var(--text3)">未設定配息月</span>`}
+        ${yld>0?`<span class="pill" style="background:#ffd60a20;color:var(--yellow)">估計年殖利率 ${fmt(yld,2)}%</span>`:''}
+        ${dm>0?`<span class="pill" style="background:#0a84ff20;color:var(--blue)">${THIS_MONTH}月預估 +$${fmt(dm)}</span>`:''}
+        <button class="btn-sm" style="background:var(--bg3);color:var(--text3);margin-left:auto" onclick="openModal('editDivMonths','${h.code}')">設定配息月</button>
+      </div>
+      ${needsRecord?`<div style="margin-top:10px;padding:10px;background:#30d15812;border-radius:10px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;color:var(--green)">💰 本月配息尚未記錄</span>
+        <button class="btn-sm" style="background:var(--green);color:#fff" onclick="openModal('divPrompt','${h.code}')">立即記錄</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ─── Dividends ────────────────────────────────────────────────────────────────
+function renderDividends(){
+  const divReceived=state.divHistory.reduce((s,d)=>s+d.total,0);
+  document.getElementById('div-total-h').textContent='$'+fmt(divReceived);
+
+  // Calendar
+  const cal=document.getElementById('div-calendar');
+  cal.innerHTML=MONTHS.map((m,i)=>{
+    const month=i+1;
+    const predicted=state.holdings.reduce((s,h)=>s+getDivInMonth(h,month),0);
+    const received=state.divHistory.filter(d=>new Date(d.date).getMonth()+1===month).reduce((s,d)=>s+d.total,0);
+    const isThis=month===THIS_MONTH;
+    return `<div style="background:${isThis?'#0a84ff22':'var(--bg2)'};border:1px solid ${isThis?'var(--blue)':'var(--border)'};border-radius:10px;padding:8px 5px;text-align:center">
+      <div style="font-size:11px;color:var(--text3)">${m}</div>
+      ${predicted>0?`<div class="mono" style="font-size:11px;color:var(--green);font-weight:700">$${fmt(predicted)}</div>`:''}
+      ${received>0?`<div class="mono" style="font-size:10px;color:var(--purple)">✓$${fmt(received)}</div>`:''}
+      ${predicted===0&&received===0?`<div style="font-size:11px;color:var(--text4)">—</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Group history by stock for easy reading
+  const el=document.getElementById('div-history-list');
+  if(state.divHistory.length===0){ el.innerHTML='<div class="empty"><div class="empty-icon">💰</div>尚無記錄<br><span style="font-size:13px">至「持股」頁面點「入帳」或「記錄」</span></div>'; return; }
+
+  // Show all records newest first
+  el.innerHTML=state.divHistory.map(d=>`
+    <div class="card2">
+      <div class="row">
+        <div><span style="font-weight:700">${d.name}</span> <span style="font-size:12px;color:var(--text3)">${d.code}</span> ${d.period?`<span class="chip" style="margin-left:4px">${d.period}</span>`:''}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="mono" style="font-weight:700;color:var(--purple)">+$${fmt(d.total)}</div>
+          <button onclick="deleteDivHistory(${d.id})" style="background:none;border:none;color:var(--text4);font-size:18px;line-height:1;padding:0 4px">×</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:5px">${fmtDate(d.date)} · ${fmt(d.shares)}股 × $${fmt(d.perShare,3)}</div>
+    </div>`).join('');
+}
+
+// ─── Sells ────────────────────────────────────────────────────────────────────
+function renderSells(){
+  const realPnL=state.sells.reduce((s,v)=>s+v.profit,0);
+  const el=document.getElementById('real-pnl-s');
+  el.textContent=pnlSign(realPnL)+'$'+fmt(realPnL); el.className='mono '+pnlClass(realPnL);
+  const list=document.getElementById('sells-list');
+  if(state.sells.length===0){ list.innerHTML='<div class="empty"><div class="empty-icon">📋</div>尚無賣出記錄</div>'; return; }
+  list.innerHTML=state.sells.map(s=>`
+    <div class="card2">
+      <div class="row">
+        <div><span style="font-weight:700">${s.name}</span> <span style="font-size:12px;color:var(--text3)">${s.code}</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="mono ${pnlClass(s.profit)}" style="font-weight:700">${pnlSign(s.profit)}$${fmt(s.profit)}</div>
+          <button onclick="deleteSell(${s.id})" style="background:none;border:none;color:var(--text4);font-size:18px;line-height:1;padding:0 4px">×</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-top:5px">${fmtDate(s.date)} · ${fmt(s.shares)}股 · 成本$${fmt(s.avgCost,2)} → 賣$${fmt(s.sellPrice,2)}</div>
+    </div>`).join('');
+}
+
+// ─── Guide ────────────────────────────────────────────────────────────────────
+function renderGuide(){
+  const guides=[
+    {id:'guide-steps-1',steps:['用 Safari 開啟此網頁（必須是 Safari，不能用 Chrome）','點底部「分享」按鈕（方框加箭頭圖示）','向下滑，找到「加入主畫面」','點右上角「新增」','✅ 桌面出現圖示，之後從主畫面開啟像 App！']},
+    {id:'guide-steps-2',steps:['開啟 iPhone 內建「捷徑」App','點底部「自動化」→ 右上角「＋」','選「個人自動化」→「時間」','設定每天下午 1:35，點「下一步」','點「加入動作」，搜尋「顯示通知」','標題填：📈 台股收盤提醒','內文填：記得更新股價資料！','關掉「執行前詢問」開關，點「完成」','✅ 每天 13:35 會自動提醒你！']},
+    {id:'guide-steps-android-install',steps:['用 Chrome 開啟此網頁','點右上角三個點「⋮」選單','選「新增到主畫面」或「安裝應用程式」','點「新增」確認','✅ 主畫面出現圖示！']},
+    {id:'guide-steps-android-notify',steps:['開啟手機內建「時鐘」App','選「鬧鐘」→ 新增鬧鐘','時間設為 13:35','標籤填：📈 記得更新股價','設定重複：週一到週五','✅ 每個交易日下午都會提醒！']},
+    {id:'guide-steps-3',steps:['「持股」頁 → 點「＋新增」→ 輸入代號、股數、買進價格','按「查詢」→ 自動從 Yahoo Finance 取得股價與配息月','如果配息月沒抓到，點「設定配息月」手動選擇','進入配息月後，首頁和持股頁會出現「記錄」提示','點「記錄」輸入本期每股股息，自動計算總金額並存入歷史','賣出時點「賣出」，自動計算損益']},
+  ];
+  guides.forEach(g=>{
+    const el=document.getElementById(g.id); if(!el) return;
+    el.innerHTML=g.steps.map((s,i)=>`
+      <div style="display:flex;gap:10px;margin-bottom:9px;align-items:flex-start">
+        <div style="min-width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</div>
+        <div style="font-size:14px;color:var(--text2);line-height:1.5;padding-top:2px">${s}</div>
+      </div>`).join('');
+  });
+}
+
+function switchGuide(platform){
+  const ios=document.getElementById('guide-ios');
+  const android=document.getElementById('guide-android');
+  const bi=document.getElementById('guide-tab-ios');
+  const ba=document.getElementById('guide-tab-android');
+  if(platform==='ios'){
+    ios.style.display='block'; android.style.display='none';
+    bi.style.background='var(--blue)'; bi.style.color='#fff';
+    ba.style.background='var(--bg3)'; ba.style.color='var(--text3)';
+  } else {
+    ios.style.display='none'; android.style.display='block';
+    ba.style.background='var(--blue)'; ba.style.color='#fff';
+    bi.style.background='var(--bg3)'; bi.style.color='var(--text3)';
+  }
+}
+
+// ─── Modals ───────────────────────────────────────────────────────────────────
+function renderAddHoldingModal(){
+  const h=selectedHolding;
+  document.getElementById('sheet').innerHTML=`
+    <div style="font-weight:900;font-size:19px;margin-bottom:16px">${h?'加碼 '+h.name:'新增持股'}</div>
+    ${!h?`<div style="margin-bottom:14px"><div class="label">股票代號</div><input id="f-code" placeholder="例：0056、2330"></div>`:''}
+    <div style="margin-bottom:14px"><div class="label">今日買進股數</div><input type="number" inputmode="decimal" id="f-shares" placeholder="例：1000"></div>
+    <div style="margin-bottom:16px"><div class="label">今日買進價格（元／股）</div><input type="number" inputmode="decimal" id="f-price" placeholder="例：38.50"></div>
+    ${h?`<div style="font-size:12px;color:var(--text3);margin-bottom:16px;background:var(--bg3);border-radius:8px;padding:10px">目前：平均成本 $${fmt(h.avgPrice,2)} · ${fmt(h.shares)} 股<br>加碼後將自動攤平平均成本</div>`:''}
+    <button class="btn btn-blue" onclick="submitHolding()" style="margin-bottom:8px">確認新增</button>
+    <button class="btn btn-gray" onclick="closeModal()">取消</button>
+    ${h?`<button class="btn btn-red" onclick="renderDeleteHoldingModal()" style="margin-top:8px">刪除此持股</button>`:''}`;
+}
+
+function renderAddSellModal(){
+  const h=selectedHolding;
+  document.getElementById('sheet').innerHTML=`
+    <div style="font-weight:900;font-size:19px;margin-bottom:4px">賣出 ${h.name}</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px">持有 ${fmt(h.shares)} 股 · 平均成本 $${fmt(h.avgPrice,2)}</div>
+    <div style="margin-bottom:14px"><div class="label">賣出股數</div><input type="number" inputmode="decimal" id="f-sell-shares" placeholder="最多 ${fmt(h.shares)} 股" oninput="updateSellPreview()"></div>
+    <div style="margin-bottom:14px"><div class="label">賣出價格（元／股）</div><input type="number" inputmode="decimal" id="f-sell-price" placeholder="例：42.00" oninput="updateSellPreview()"></div>
+    <div id="sell-preview" style="margin-bottom:16px"></div>
+    <button class="btn btn-red" onclick="submitSell()" style="margin-bottom:8px">確認賣出</button>
+    <button class="btn btn-gray" onclick="closeModal()">取消</button>`;
+}
+
+function updateSellPreview(){
+  const h=selectedHolding;
+  const shares=parseFloat(document.getElementById('f-sell-shares')?.value);
+  const sellPrice=parseFloat(document.getElementById('f-sell-price')?.value);
+  const el=document.getElementById('sell-preview'); if(!el||isNaN(shares)||isNaN(sellPrice)) return;
+  const profit=(sellPrice-h.avgPrice)*shares;
+  el.innerHTML=`<div class="card2" style="text-align:center"><div style="font-size:12px;color:var(--text3);margin-bottom:4px">預估損益</div><div class="mono ${pnlClass(profit)}" style="font-size:26px;font-weight:900">${pnlSign(profit)}$${fmt(profit)}</div></div>`;
+}
+
+function renderAddDivModal(){
+  const h=selectedHolding;
+  const today=new Date().toISOString().slice(0,10);
+  const lastDiv=state.stockInfo[h.code]?.lastDivAmount||'';
+  const period=`${now.getFullYear()}-${String(THIS_MONTH).padStart(2,'0')}`;
+  document.getElementById('sheet').innerHTML=`
+    <div style="font-weight:900;font-size:19px;margin-bottom:4px">股息入帳</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px">${h.name} · 持有 ${fmt(h.shares)} 股</div>
+    <div style="margin-bottom:14px">
+      <div class="label">每股股息（元）${lastDiv?`<span style="color:var(--blue);font-size:11px;margin-left:6px">上期：$${fmt(lastDiv,3)}</span>`:''}</div>
+      <input type="number" inputmode="decimal" id="f-div-per" placeholder="例：0.30" value="${lastDiv||''}" oninput="updateDivPreview()">
+    </div>
+    <div style="margin-bottom:14px"><div class="label">入帳日期</div><input type="date" id="f-div-date" value="${today}"></div>
+    <div id="div-preview" style="margin-bottom:16px"></div>
+    <button class="btn btn-blue" onclick="submitDiv()" style="margin-bottom:8px">確認入帳</button>
+    <button class="btn btn-gray" onclick="closeModal()">取消</button>`;
+  if(lastDiv) updateDivPreview();
+}
+
+// Quick div prompt from alert banner
+function renderDivPromptModal(code){
+  selectedHolding = state.holdings.find(h=>h.code===code);
+  const h=selectedHolding;
+  const today=new Date().toISOString().slice(0,10);
+  const lastDiv=state.stockInfo[h.code]?.lastDivAmount||'';
+  document.getElementById('sheet').innerHTML=`
+    <div style="font-size:32px;text-align:center;margin-bottom:8px">💰</div>
+    <div style="font-weight:900;font-size:19px;text-align:center;margin-bottom:4px">${h.name} ${THIS_MONTH}月配息</div>
+    <div style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:20px">持有 ${fmt(h.shares)} 股 · 請輸入本期每股股息</div>
+    <div style="margin-bottom:14px">
+      <div class="label">每股股息（元）${lastDiv?`<span style="color:var(--blue);font-size:11px;margin-left:6px">上期：$${fmt(lastDiv,3)}</span>`:''}</div>
+      <input type="number" inputmode="decimal" id="f-div-per" placeholder="例：0.30" value="${lastDiv||''}" oninput="updateDivPreview()">
+    </div>
+    <div style="margin-bottom:14px"><div class="label">入帳日期</div><input type="date" id="f-div-date" value="${today}"></div>
+    <div id="div-preview" style="margin-bottom:16px"></div>
+    <button class="btn btn-green" onclick="submitDiv()" style="margin-bottom:8px">確認記錄</button>
+    <button class="btn btn-gray" onclick="closeModal()">稍後再記錄</button>`;
+  if(lastDiv) updateDivPreview();
+}
+
+function updateDivPreview(){
+  const h=selectedHolding;
+  const per=parseFloat(document.getElementById('f-div-per')?.value);
+  const el=document.getElementById('div-preview'); if(!el||isNaN(per)) return;
+  const total=per*h.shares;
+  el.innerHTML=`<div class="card2" style="text-align:center"><div style="font-size:12px;color:var(--text3);margin-bottom:4px">本次股息總計</div><div class="mono" style="font-size:26px;font-weight:900;color:var(--purple)">+$${fmt(total)}</div></div>`;
+}
+
+function renderEditDivMonthsModal(){
+  const h=selectedHolding;
+  const current=getDivMonths(h);
+  document.getElementById('sheet').innerHTML=`
+    <div style="font-weight:900;font-size:19px;margin-bottom:4px">設定配息月</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:4px">${h.name} · ${h.code}</div>
+    <div style="font-size:12px;color:var(--text4);margin-bottom:16px">點選該股票的配息月份（可多選）</div>
+    <div class="month-grid" id="month-picker">
+      ${MONTHS.map((m,i)=>{
+        const month=i+1;
+        const on=current.includes(month);
+        return `<button class="month-btn ${on?'on':''}" onclick="toggleMonth(${month})" id="mbtn-${month}">${m}</button>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:var(--text3)">已選：<span id="month-selected">${current.length>0?current.join('、')+'月':'未選擇'}</span></div>
+    <div style="margin-top:6px;font-size:11px;color:var(--text4)">Yahoo Finance 無法自動取得時可手動設定</div>
+    <button class="btn btn-blue" onclick="saveDivMonths()" style="margin-top:16px;margin-bottom:8px">儲存</button>
+    <button class="btn btn-gray" onclick="closeModal()">取消</button>`;
+}
+
+let tempMonths=[];
+function toggleMonth(m){
+  const btn=document.getElementById('mbtn-'+m);
+  const idx=tempMonths.indexOf(m);
+  if(idx>=0){ tempMonths.splice(idx,1); btn.classList.remove('on'); }
+  else { tempMonths.push(m); tempMonths.sort((a,b)=>a-b); btn.classList.add('on'); }
+  document.getElementById('month-selected').textContent=tempMonths.length>0?tempMonths.join('、')+'月':'未選擇';
+}
+function saveDivMonths(){
+  const h=selectedHolding;
+  state.holdings=state.holdings.map(hh=>hh.code===h.code?{...hh,divMonths:[...tempMonths]}:hh);
+  save(); closeModal(); renderAll(); showToast('✓ 配息月已儲存');
+}
+
+function renderDeleteHoldingModal(){
+  const h=selectedHolding;
+  document.getElementById('sheet').innerHTML=`
+    <div style="text-align:center;padding:16px 0 8px">
+      <div style="font-size:44px;margin-bottom:12px">🗑</div>
+      <div style="font-weight:800;font-size:19px;margin-bottom:8px">刪除 ${h.name}？</div>
+      <div style="font-size:14px;color:var(--text3);margin-bottom:6px">${h.code} · ${fmt(h.shares)} 股</div>
+      <div style="font-size:13px;color:var(--red);margin-bottom:28px">所有買入記錄將一併清除，無法復原</div>
+      <button class="btn btn-red" onclick="deleteHolding('${h.code}')" style="margin-bottom:10px">確認刪除</button>
+      <button class="btn btn-gray" onclick="closeModal()">取消</button>
+    </div>`;
+}
+
+function renderHoldingDetailModal(){
+  const h=selectedHolding;
+  const divM=getDivMonths(h);
+  // Div history for this stock
+  const hDivs=state.divHistory.filter(d=>d.code===h.code);
+  document.getElementById('sheet').innerHTML=`
+    <div style="font-weight:900;font-size:20px">${h.name}</div>
+    <div style="font-size:13px;color:var(--text3);margin-bottom:16px">${h.code} · 配息月：${divM.length>0?divM.join('、')+'月':'未設定'}</div>
+    <div class="section-title" style="margin-top:0">買入紀錄</div>
+    ${(h.lots||[]).map(l=>`<div class="card2" style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px;color:var(--text3)">${fmtDate(l.date)}</div><div class="mono" style="font-weight:700">${fmt(l.shares)} 股 @ $${fmt(l.price,2)}</div></div>`).join('')}
+    ${hDivs.length>0?`<div class="section-title">股息歷史</div>${hDivs.map(d=>`<div class="card2"><div class="row"><div>${d.period||fmtDate(d.date)}</div><div class="mono" style="color:var(--purple);font-weight:700">+$${fmt(d.total)}</div></div><div style="font-size:12px;color:var(--text3);margin-top:3px">${fmt(d.shares)}股 × $${fmt(d.perShare,3)}</div></div>`).join('')}`:''}
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-blue" style="flex:1" onclick="closeModal();setTimeout(()=>openModal('addHolding','${h.code}'),50)">加碼</button>
+      <button class="btn btn-gray" style="flex:1" onclick="closeModal()">關閉</button>
+    </div>`;
+}
+
+// ─── Actions ──────────────────────────────────────────────────────────────────
+function submitHolding(){
+  const codeEl=document.getElementById('f-code');
+  const code=(codeEl?codeEl.value:selectedHolding?.code)?.trim().toUpperCase();
+  const shares=parseFloat(document.getElementById('f-shares').value);
+  const price=parseFloat(document.getElementById('f-price').value);
+  if(!code||isNaN(shares)||isNaN(price)||shares<=0||price<=0){ showToast('請填寫所有欄位'); return; }
+  const date=new Date().toISOString();
+  const lot={shares,price,date};
+  const existing=state.holdings.find(h=>h.code===code);
+  if(existing){
+    const ns=existing.shares+shares;
+    const na=(existing.shares*existing.avgPrice+shares*price)/ns;
+    state.holdings=state.holdings.map(h=>h.code===code?{...h,shares:ns,avgPrice:parseFloat(na.toFixed(4)),lots:[...(h.lots||[]),lot]}:h);
+  } else {
+    const name=state.stockInfo[code]?.name||code;
+    state.holdings.push({code,name,shares,avgPrice:price,lots:[lot],divMonths:[]});
+  }
+  save(); closeModal(); renderAll(); showToast('✓ 新增完成');
+}
+
+function submitSell(){
+  const h=selectedHolding;
+  const shares=parseFloat(document.getElementById('f-sell-shares').value);
+  const sellPrice=parseFloat(document.getElementById('f-sell-price').value);
+  if(isNaN(shares)||isNaN(sellPrice)||shares<=0||shares>h.shares){ showToast('請檢查輸入值'); return; }
+  const profit=(sellPrice-h.avgPrice)*shares;
+  state.sells.unshift({id:Date.now(),code:h.code,name:h.name,shares,sellPrice,avgCost:h.avgPrice,profit,date:new Date().toISOString()});
+  const ns=h.shares-shares;
+  if(ns<=0) state.holdings=state.holdings.filter(hh=>hh.code!==h.code);
+  else state.holdings=state.holdings.map(hh=>hh.code===h.code?{...hh,shares:ns}:hh);
+  save(); closeModal(); renderAll(); showToast('✓ 賣出記錄完成');
+}
+
+function submitDiv(){
+  const h=selectedHolding;
+  const perShare=parseFloat(document.getElementById('f-div-per').value);
+  const date=document.getElementById('f-div-date').value;
+  if(isNaN(perShare)||perShare<=0){ showToast('請輸入每股股息'); return; }
+  const period=`${now.getFullYear()}-${String(THIS_MONTH).padStart(2,'0')}`;
+  state.divHistory.unshift({id:Date.now(),code:h.code,name:h.name,perShare,shares:h.shares,total:perShare*h.shares,date,period});
+  // Update lastDivAmount in stockInfo for future reference
+  if(!state.stockInfo[h.code]) state.stockInfo[h.code]={};
+  state.stockInfo[h.code].lastDivAmount=perShare;
+  save(); closeModal(); renderAll(); showToast('✓ 股息入帳記錄完成');
+}
+
+function deleteHolding(code){
+  state.holdings=state.holdings.filter(h=>h.code!==code);
+  save(); closeModal(); renderAll(); showToast('已刪除持股');
+}
+function deleteSell(id){ state.sells=state.sells.filter(s=>s.id!==id); save(); renderAll(); }
+function deleteDivHistory(id){ state.divHistory=state.divHistory.filter(d=>d.id!==id); save(); renderAll(); }
+
+// ─── Query: Yahoo Finance price + dividend months ─────────────────────────────
+async function queryPriceAndDiv(){
+  if(state.holdings.length===0){ showToast('請先新增持股'); return; }
+  const btn=document.getElementById('ai-btn');
+  const msg=document.getElementById('ai-msg');
+  btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span>';
+  msg.textContent='查詢中...';
+
+  let priceOk=0, divOk=0;
+  const updatedAt=new Date().toISOString();
+
+  for(const h of state.holdings){
+    const code=h.code.trim();
+    let sym='', meta=null;
+
+    // Try .TW then .TWO
+    for(const suffix of ['.TW','.TWO']){
+      try{
+        const url='https://query1.finance.yahoo.com/v8/finance/chart/'+code+suffix+'?interval=1d&range=5d';
+        const proxy='https://api.allorigins.win/get?url='+encodeURIComponent(url);
+        const r=await fetch(proxy);
+        const outer=await r.json();
+        const data=JSON.parse(outer.contents);
+        const m=data?.chart?.result?.[0]?.meta;
+        if(m&&m.regularMarketPrice){ meta=m; sym=code+suffix; break; }
+      }catch{}
+    }
+
+    if(meta){
+      const price=Math.round(meta.regularMarketPrice*100)/100;
+      const name=meta.shortName||meta.longName||code;
+      if(!state.stockInfo[code]) state.stockInfo[code]={};
+      state.stockInfo[code]={...state.stockInfo[code],name,price,updatedAt};
+      state.holdings=state.holdings.map(hh=>hh.code===code?{...hh,name}:hh);
+      priceOk++;
+
+      // Fetch dividend history to determine div months
+      try{
+        const divUrl='https://query1.finance.yahoo.com/v8/finance/chart/'+sym+'?interval=3mo&range=2y&events=dividends';
+        const divProxy='https://api.allorigins.win/get?url='+encodeURIComponent(divUrl);
+        const dr=await fetch(divProxy);
+        const dOuter=await dr.json();
+        const dData=JSON.parse(dOuter.contents);
+        const events=dData?.chart?.result?.[0]?.events?.dividends;
+        if(events){
+          // Extract months from dividend timestamps
+          const months=[...new Set(
+            Object.values(events).map(e=>{
+              const d=new Date(e.date*1000);
+              return d.getMonth()+1;
+            })
+          )].sort((a,b)=>a-b);
+          if(months.length>0){
+            state.stockInfo[code].divMonths=months;
+            // Also update lastDivAmount from most recent dividend
+            const vals=Object.values(events).sort((a,b)=>b.date-a.date);
+            if(vals.length>0) state.stockInfo[code].lastDivAmount=Math.round(vals[0].amount*1000)/1000;
+            // Sync to holding if not manually overridden
+            state.holdings=state.holdings.map(hh=>{
+              if(hh.code!==code) return hh;
+              // Only auto-set if user hasn't manually changed
+              if(!hh._divMonthsManual) return {...hh,divMonths:months};
+              return hh;
+            });
+            divOk++;
+          }
+        }
+      }catch{}
+    }
+  }
+
+  save(); renderAll();
+  if(priceOk>0){
+    msg.textContent=`✓ 股價更新 ${priceOk} 支${divOk>0?'，配息月更新 '+divOk+' 支':''} · ${new Date().toLocaleTimeString('zh-TW')}`;
+    const upEl=document.getElementById('ai-updated');
+    upEl.style.display='block';
+    upEl.textContent=divOk<state.holdings.length?'部分股票無配息資料，可手動設定配息月':'配息月已自動更新';
+    showToast('✓ 查詢完成');
+  } else {
+    msg.textContent='⚠ 查詢失敗，請確認網路並重試';
+    showToast('查詢失敗，請重試');
+  }
+  btn.disabled=false; btn.textContent='查詢';
+}
+
+// ─── PWA ─────────────────────────────────────────────────────────────────────
+(function setupPWA(){
+  const manifest={name:'存股追蹤器',short_name:'存股追蹤',start_url:'./',display:'standalone',orientation:'portrait',background_color:'#000000',theme_color:'#000000',
+    icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23000'/%3E%3Ctext y='.85em' font-size='140' x='20'%3E📈%3C/text%3E%3C/svg%3E",sizes:'192x192',type:'image/svg+xml'}]};
+  const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
+  if('serviceWorker' in navigator){
+    const sw=`const C='sv4';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll([self.location.pathname])).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(clients.claim()));self.addEventListener('fetch',e=>{if(e.request.mode==='navigate')e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)));});`;
+    navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'text/javascript'}))).catch(()=>{});
+  }
+  if(/Android/i.test(navigator.userAgent)) setTimeout(()=>switchGuide('android'),100);
+})();
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+load();
+// Init tempMonths when editDivMonths modal opens
+const _origOpenModal=openModal;
+window.openModal=function(type,code){
+  if(type==='editDivMonths'){
+    const h=state.holdings.find(h=>h.code===code);
+    tempMonths=[...(getDivMonths(h)||[])];
+  }
+  _origOpenModal(type,code);
+};
+
+document.getElementById('header-date').textContent=now.toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+function fixLayout(){
+  const h=document.getElementById('header');
+  document.getElementById('app').style.paddingTop=(h.offsetHeight+8)+'px';
+}
+fixLayout(); window.addEventListener('resize',fixLayout);
+renderAll();
+</script>
+</body>
+</html>
