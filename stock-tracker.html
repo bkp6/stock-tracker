@@ -588,7 +588,7 @@ function drawPie(){
   // Use parent element's actual rendered width (reliable after ResizeObserver fires)
   const parent=document.getElementById('panel-chart')||canvas.parentElement;
   const parentW=parent?.clientWidth||300;
-  const displaySize=Math.min(parentW-32, 250);
+  const displaySize=Math.min(parentW-32, 230);
   if(displaySize<=0) return;
   // Always use native dpr — no artificial multiplier needed since we size correctly
   const dpr=Math.ceil(window.devicePixelRatio||1);
