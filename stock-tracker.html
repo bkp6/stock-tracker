@@ -596,7 +596,7 @@ function drawPie(){
   const parent=document.getElementById('panel-chart')||canvas.parentElement;
   const parentW=parent?.clientWidth||300;
   // Leave ~130px for legend on the right; cap at 160px for balance
-  const displaySize=Math.min(Math.floor((parentW-32-130)), 160);
+  const displaySize=Math.min(Math.floor((parentW-32-130)), 230);
   if(displaySize<=0) return;
   // Always use native dpr — no artificial multiplier needed since we size correctly
   const dpr=Math.ceil(window.devicePixelRatio||1);
