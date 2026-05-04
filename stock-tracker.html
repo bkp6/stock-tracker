@@ -1032,27 +1032,39 @@ async function _fetchDivs(foundSym, cb){
 // ── Price-only query (dashboard button) ───────────────────────────────────────
 async function queryPriceOnly(){
   if(!S.holdings.length){toast('請先新增持股');return;}
-  const btn=document.getElementById('ai-btn');
-  if(btn){btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span>';}
+  const btn=document.getElementById('ai-btn'), msg=document.getElementById('ai-msg');
+  btn.disabled=true; btn.innerHTML='<span class="spin">⟳</span>'; msg.textContent='查詢股價中...';
   const cb=Date.now(), codes=S.holdings.map(h=>h.code.trim());
   const foundSym=await _fetchPrices(codes,cb);
   const priceOk=Object.keys(foundSym).length;
+  // Save query time and data date
   S.lastQueryTime=new Date().toISOString();
+  // lastDataDate: derive from regularMarketTime stored in stockInfo (TWN date)
+  const codes2=S.holdings.map(h=>h.code.trim());
+  for(const code of codes2){
+    const info=S.stockInfo[code];
+    if(info?.marketTime){
+      const d=new Date((info.marketTime)*1000+8*3600*1000);
+      S.lastDataDate=d.toISOString().slice(0,10);
+      break;
+    }
+  }
+  // Always set lastDataDate to TWN today when query succeeds
   if(priceOk>0){
     const twnNow=new Date(Date.now()+8*3600*1000);
     S.lastDataDate=twnNow.toISOString().slice(0,10);
   }
   snap(); save(); renderAll();
   if(priceOk>0){
+    msg.textContent='✓ 股價更新 '+priceOk+' 支 · '+new Date().toLocaleTimeString('zh-TW');
     const upEl=document.getElementById('ai-updated');
-    if(upEl){upEl.style.display='block'; upEl.textContent='如需更新配息月，至「持股」頁按「↻ 更新配息」';}
-    toast('✓ 股價更新完成（'+priceOk+' 支）');
+    upEl.style.display='block'; upEl.textContent='如需更新配息月，至「持股」頁按「↻ 更新配息」';
+    toast('✓ 股價更新完成');
   } else {
-    toast('⚠ 查詢失敗，請確認網路後重試');
+    msg.textContent='⚠ 查詢失敗，請確認網路後重試'; toast('查詢失敗');
   }
-  if(btn){btn.disabled=false; btn.textContent='查詢股價';}
+  btn.disabled=false; btn.textContent='查詢';
 }
-
 // ── Dividend-only query (holdings page button) ────────────────────────────────
 async function queryDivOnly(){
   if(!S.holdings.length){toast('請先新增持股');return;}
@@ -1065,7 +1077,6 @@ async function queryDivOnly(){
   toast(divOk>0?'✓ 配息資料更新完成':'⚠ 配息資料查詢失敗');
   if(btn){btn.disabled=false;btn.textContent='↻ 更新配息';}
 }
-
 
 
 
