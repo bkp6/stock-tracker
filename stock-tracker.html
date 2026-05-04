@@ -978,46 +978,27 @@ async function proxyFetch(url){
 async function _fetchPrices(codes, cb){
   const updAt=new Date().toISOString();
   const foundSym={};
-  const allSyms=[...codes.map(c=>c+'.TW'),...codes.map(c=>c+'.TWO')].join(',');
-  // Batch quote attempt
-  try{
-    const burl='https://query2.finance.yahoo.com/v7/finance/quote?symbols='+encodeURIComponent(allSyms)+'&fields=regularMarketPrice,shortName,longName,regularMarketTime&_='+cb;
-    const txt=await proxyFetch(burl);
-    const quotes=JSON.parse(txt)?.quoteResponse?.result||[];
-    for(const q of quotes){
-      if(!q.regularMarketPrice) continue;
-      const code=q.symbol.replace(/[.](TW|TWO)$/,'');
-      if(!codes.includes(code)||foundSym[code]) continue;
-      const price=Math.round(q.regularMarketPrice*100)/100;
-      // Prefer Chinese name from local table; fallback to Yahoo name
-      const localName=lookupName(code);
-      const name=localName||(q.shortName&&q.shortName.length<20?q.shortName:null)||q.longName||code;
-      if(!S.stockInfo[code]) S.stockInfo[code]={};
-      S.stockInfo[code]={...S.stockInfo[code],name,price,updAt};
-      S.holdings=S.holdings.map(hh=>hh.code===code?{...hh,name}:hh);
-      foundSym[code]=q.symbol;
-    }
-  }catch{}
-  // Per-symbol fallback for anything not found
-  for(const code of codes){
-    if(foundSym[code]) continue;
+  // Query each code individually using v8 chart API (most reliable for TW stocks)
+  // Try .TW first (TWSE), then .TWO (OTC) — never mix them in a batch
+  await Promise.all(codes.map(async code=>{
     for(const suf of['.TW','.TWO']){
       try{
-        const url='https://query2.finance.yahoo.com/v8/finance/chart/'+code+suf+'?interval=1d&range=2d&_='+cb;
+        const url='https://query2.finance.yahoo.com/v8/finance/chart/'+code+suf+'?interval=1d&range=5d&_='+cb;
         const txt=await proxyFetch(url);
-        const meta=JSON.parse(txt)?.chart?.result?.[0]?.meta;
-        if(meta?.regularMarketPrice){
-          const price=Math.round(meta.regularMarketPrice*100)/100;
-          const localName=lookupName(code);
-          const name=localName||(meta.shortName&&meta.shortName.length<20?meta.shortName:null)||meta.longName||code;
-          if(!S.stockInfo[code]) S.stockInfo[code]={};
-          S.stockInfo[code]={...S.stockInfo[code],name,price,updAt};
-          S.holdings=S.holdings.map(hh=>hh.code===code?{...hh,name}:hh);
-          foundSym[code]=code+suf; break;
-        }
+        const result=JSON.parse(txt)?.chart?.result?.[0];
+        const meta=result?.meta;
+        if(!meta?.regularMarketPrice) continue;
+        const price=Math.round(meta.regularMarketPrice*100)/100;
+        const localName=lookupName(code);
+        const name=localName||(meta.shortName&&meta.shortName.length<20?meta.shortName:null)||meta.longName||code;
+        if(!S.stockInfo[code]) S.stockInfo[code]={};
+        S.stockInfo[code]={...S.stockInfo[code],name,price,updAt};
+        S.holdings=S.holdings.map(hh=>hh.code===code?{...hh,name}:hh);
+        foundSym[code]=code+suf;
+        break;
       }catch{}
     }
-  }
+  }));
   return foundSym;
 }
 
@@ -1056,9 +1037,7 @@ async function queryPriceOnly(){
   const cb=Date.now(), codes=S.holdings.map(h=>h.code.trim());
   const foundSym=await _fetchPrices(codes,cb);
   const priceOk=Object.keys(foundSym).length;
-  // Save query time and data date
   S.lastQueryTime=new Date().toISOString();
-  // Always set lastDataDate to TWN today when query succeeds
   if(priceOk>0){
     const twnNow=new Date(Date.now()+8*3600*1000);
     S.lastDataDate=twnNow.toISOString().slice(0,10);
