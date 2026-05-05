@@ -107,36 +107,7 @@ button{cursor:pointer;font-family:inherit;border:none;-webkit-appearance:none;}
     <canvas id="pie-canvas" style="display:block;margin:0 auto;touch-action:none"></canvas>
     <div id="pie-legend" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center"></div>
   </div>
-  <!-- Slider card container -->
-  <div class="slider-wrap" id="pie-scene" style="display:none">
-    <!-- Tab strip: small, right-aligned -->
-    <div style="padding:10px 14px 0;display:flex;justify-content:flex-end">
-      <div class="slider-tabs" style="width:auto">
-        <button class="slider-tab active" id="tab-chart" onclick="showPanel('chart')">簡圖</button>
-        <button class="slider-tab" id="tab-list" onclick="showPanel('list')">詳細</button>
-      </div>
-    </div>
-    <div class="slider-track" id="pie-track">
-      <!-- Panel A: pie chart left, legend right -->
-      <div class="slider-panel" id="panel-chart">
-        <div style="display:flex;align-items:center;gap:12px">
-          <div style="flex-shrink:0">
-            <canvas id="pie-canvas" style="display:block;touch-action:none"></canvas>
-          </div>
-          <div id="pie-legend" style="flex:1;display:flex;flex-direction:column;gap:5px;overflow:hidden"></div>
-        </div>
-      </div>
-      <!-- Panel B: stock list -->
-      <div class="slider-panel" id="panel-list">
-        <div id="h-list-back"></div>
-      </div>
-    </div>
-  </div>
-  <!-- Selected holding detail panel -->
-  <div id="pie-detail" style="display:none;margin-bottom:12px"></div>
-  <div id="h-list"></div>
-</div>
-
+  
 <!-- DIVIDENDS -->
 <div class="page" id="page-dividends">
   <div style="font-size:22px;font-weight:900;margin-bottom:4px">股息紀錄</div>
