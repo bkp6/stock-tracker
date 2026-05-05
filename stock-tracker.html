@@ -761,46 +761,6 @@ function rSparkline(){
   requestAnimationFrame(()=>requestAnimationFrame(drawSparkline));
 }
 
-// ── US Market fetch ───────────────────────────────────────────────────────────
-async function doLoadUS(){
-  const el=document.getElementById('mkt-us');
-  const btn=document.getElementById('mkt-btn');
-  const dateEl=document.getElementById('us-date');
-  if(!el) return;
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin">⟳</span>';}
-  el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text3)"><span class="spin">⟳</span></div>`;
-  const indices=[{sym:'^DJI',name:'DJIA 道瓊'},{sym:'^GSPC',name:'S&P 500'},{sym:'^IXIC',name:'NASDAQ'}];
-  const results=[];
-  let dataDate='';
-  for(const idx of indices){
-    try{
-      const url='https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(idx.sym)+'?interval=1d&range=2d';
-      const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(url));
-      const outer=await r.json();
-      const meta=JSON.parse(outer.contents)?.chart?.result?.[0]?.meta;
-      if(meta){
-        const price=meta.regularMarketPrice;
-        const prev=meta.chartPreviousClose||meta.previousClose||price;
-        const chg=price-prev, pct=prev?chg/prev*100:0;
-        // Get trading date from regularMarketTime
-        if(!dataDate&&meta.regularMarketTime){
-          const d=new Date(meta.regularMarketTime*1000);
-          dataDate=d.toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'})+' '+d.toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',timeZone:'America/New_York'})+' ET';
-        }
-        results.push({name:idx.name,price,chg,pct});
-      }
-    }catch{}
-  }
-  el.innerHTML=results.length?
-    results.map(r=>`<div class="card2"><div class="row"><div style="font-weight:700">${r.name}</div><div style="text-align:right"><div class="mono" style="font-weight:800;font-size:17px">${fmt(r.price,2)}</div><div class="mono ${pc(r.chg)}" style="font-size:13px">${ps(r.chg)}${fmt(r.chg,2)} (${ps(r.pct)}${fmt(r.pct,2)}%)</div></div></div></div>`).join(''):
-    `<div style="text-align:center;padding:16px;color:var(--text4)">載入失敗，請重試</div>`;
-  if(dateEl) dateEl.textContent=dataDate;
-  if(btn){btn.disabled=false;btn.textContent='重新整理';}
-  return results;
-}
-// Keep old name for switchTab call
-async function loadUSMarket(){ return doLoadUS(); }
-
 // ── Shared helpers ────────────────────────────────────────────────────────────
 async function _fetchPrices(codes, cb){
   const updAt=new Date().toISOString();
