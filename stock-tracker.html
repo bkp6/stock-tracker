@@ -142,18 +142,7 @@ button{cursor:pointer;font-family:inherit;border:none;-webkit-appearance:none;}
 </div>
 
   
-<!-- SEARCH PAGE -->
-<div class="page" id="page-search">
-  <div style="font-size:22px;font-weight:900;margin-bottom:16px">線上查詢</div>
-  <!-- Search input -->
-  <div style="position:relative;margin-bottom:12px">
-    <input id="sq-input" placeholder="輸入股票代號，例：2330、0056" style="padding-right:80px;font-size:15px" oninput="sqAutocomplete()" onkeydown="if(event.key==='Enter')sqSearch()">
-    <button onclick="sqSearch()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:var(--blue);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">查詢</button>
-    <div id="sq-ac" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);background:var(--bg3);border:1px solid var(--border);border-radius:10px;z-index:10;max-height:200px;overflow-y:auto"></div>
-  </div>
-  <!-- Results area -->
-  <div id="sq-result"></div>
-</div>
+
   
 </div><!-- /app -->
 
