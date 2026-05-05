@@ -635,11 +635,7 @@ function rLedger(){
   const totalIn=events.filter(e=>e.amount>0).reduce((s,e)=>s+e.amount,0);
   const totalOut=events.filter(e=>e.amount<0).reduce((s,e)=>s+Math.abs(e.amount),0);
   const net=totalIn-totalOut;
-  document.getElementById('ledger-sum').innerHTML=`<div class="grid3">
-    <div class="card" style="margin-bottom:0;text-align:center"><div class="sl">總流入</div><div class="sv mono" style="color:var(--green)">+$${fmt(totalIn)}</div></div>
-    <div class="card" style="margin-bottom:0;text-align:center"><div class="sl">總流出</div><div class="sv mono" style="color:var(--red)">-$${fmt(totalOut)}</div></div>
-    <div class="card" style="margin-bottom:0;text-align:center"><div class="sl">淨額</div><div class="sv mono ${pc(net)}">${ps(net)}$${fmt(net)}</div></div>
-  </div>`;
+  
 
   const el=document.getElementById('ledger-list');
   if(!events.length){el.innerHTML='<div class="empty"><div class="empty-icon">📒</div>尚無紀錄</div>';return;}
