@@ -464,18 +464,28 @@ function selectPieSlice(code){
 function drawPie(){
   const canvas=document.getElementById('pie-canvas');
   if(!canvas||!S.holdings.length) return;
-  const wrap=document.getElementById('pie-wrap');
-  const PUSH=14, MARGIN=PUSH+8;
-  const displaySize=Math.min(wrap.clientWidth-32, 280);
-  const dpr=window.devicePixelRatio||1;
+  // Selected slice pushes out slightly
+  const PUSH=6, MARGIN=PUSH+6;
+  const parent=document.getElementById('panel-chart')||canvas.parentElement;
+  const parentW=parent?.clientWidth||300;
+  // Canvas takes left half of panel (~panel minus 130px legend area), capped
+  const displaySize=Math.min(Math.max(Math.floor(parentW-32-130), 100), 180);
+  if(displaySize<=0) return;
+  const dpr=Math.ceil(window.devicePixelRatio||1);
+  const physW=Math.round(displaySize*dpr);
+  const physH=Math.round(displaySize*dpr);
+  if(canvas.width!==physW||canvas.height!==physH){
+    canvas.width=physW;
+    canvas.height=physH;
+  }
   canvas.style.width=displaySize+'px';
   canvas.style.height=displaySize+'px';
-  canvas.width=displaySize*dpr;
-  canvas.height=displaySize*dpr;
   const ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
   const cx=displaySize/2, cy=displaySize/2;
-  const R=displaySize/2-MARGIN, r=R*0.52;
+  // Thin ring: inner radius is ~82% of outer → ring thickness ≈ 18% of radius
+  const R=displaySize/2-MARGIN;
+  const r=R*0.82;
   ctx.clearRect(0,0,displaySize,displaySize);
 
   const total=S.holdings.reduce((s,h)=>s+totalShares(h)*(getPrice(h.code)||avgPrice(h)),0);
@@ -487,11 +497,13 @@ function drawPie(){
     pct:totalShares(h)*(getPrice(h.code)||avgPrice(h))/total*100
   }));
 
-  const gap=0.018;
-  // Pass 1: draw slices
+  // Small gap between slices for clean separation
+  const gap=0.025;
+
+  // Draw ring slices — no labels on ring, no shadows on unselected
   let angle=-Math.PI/2;
   slices.forEach(sl=>{
-    const sweep=Math.max(sl.val/total*Math.PI*2-gap, 0.001);
+    const sweep=Math.max(sl.val/total*Math.PI*2-gap, 0.002);
     const isSel=pieSelected===sl.code;
     const push=isSel?PUSH:0;
     const midA=angle+sweep/2+gap/2;
@@ -500,69 +512,51 @@ function drawPie(){
     ctx.arc(cx+ox, cy+oy, R, angle+gap/2, angle+gap/2+sweep);
     ctx.arc(cx+ox, cy+oy, r, angle+gap/2+sweep, angle+gap/2, true);
     ctx.closePath();
-    ctx.fillStyle=sl.color+(isSel?'ff':'cc');
-    if(isSel){ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=14;}
+    // Selected slice is full opacity; others slightly muted
+    ctx.fillStyle=isSel ? sl.color : sl.color+'cc';
     ctx.fill();
-    ctx.shadowBlur=0;
     angle+=sweep+gap;
   });
 
-  // Centre text
-  ctx.fillStyle='#fff';
+  // Centre: show just total market value (no "總市值" label — cleaner)
+  const fs1=Math.round(displaySize*0.10); // value font
+  const fs2=Math.round(displaySize*0.065); // label font
   ctx.textAlign='center';
   ctx.textBaseline='middle';
-  ctx.font=`bold ${Math.round(displaySize*0.048)}px sans-serif`;
-  ctx.fillText('總市值', cx, cy-displaySize*0.058);
-  ctx.font=`bold ${Math.round(displaySize*0.056)}px sans-serif`;
-  ctx.fillText('$'+fmt(total), cx, cy+displaySize*0.042);
+  ctx.fillStyle='rgba(255,255,255,0.5)';
+  ctx.font=`400 ${fs2}px sans-serif`;
+  ctx.fillText('總市值', cx, cy-fs1*0.55);
+  ctx.fillStyle='#ffffff';
+  ctx.font=`700 ${fs1}px sans-serif`;
+  ctx.fillText('$'+fmt(total), cx, cy+fs2*0.4);
   ctx.textBaseline='alphabetic';
 
-  // Pass 2: labels — show for pct>=4, skip for smaller (slice still visible)
-  angle=-Math.PI/2;
-  slices.forEach(sl=>{
-    const sweep=Math.max(sl.val/total*Math.PI*2-gap, 0.001);
-    if(sl.pct>=4){
-      const isSel=pieSelected===sl.code;
-      const push=isSel?PUSH:0;
-      const midA=angle+sweep/2+gap/2;
-      const ox=Math.cos(midA)*push, oy=Math.sin(midA)*push;
-      const labelR=(R+r)/2;
-      const lx=cx+ox+Math.cos(midA)*labelR;
-      const ly=cy+oy+Math.sin(midA)*labelR;
-      const fs=Math.round(displaySize*(sl.pct>10?0.043:0.036));
-      ctx.fillStyle='#fff';
-      ctx.font=`bold ${fs}px sans-serif`;
-      ctx.textAlign='center';
-      ctx.fillText(sl.code, lx, ly-fs*0.5);
-      ctx.font=`${Math.round(fs*0.88)}px sans-serif`;
-      ctx.fillText(fmt(sl.pct,2)+'%', lx, ly+fs*0.85);
-    }
-    angle+=sweep+gap;
-  });
-
-  // Legend
+  // Legend — vertical list on right side
   const legend=document.getElementById('pie-legend');
   if(legend){
     legend.innerHTML=slices.map(sl=>`
-      <div onclick="selectPieSlice('${sl.code}')" style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 8px;border-radius:8px;background:${pieSelected===sl.code?'var(--bg3)':'transparent'}">
+      <div onclick="selectPieSlice('${sl.code}')" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:5px 8px;border-radius:8px;background:${pieSelected===sl.code?'var(--bg3)':'transparent'}">
         <div style="width:10px;height:10px;border-radius:50%;background:${sl.color};flex-shrink:0"></div>
-        <span style="font-size:12px;font-weight:600">${sl.code}</span>
-        <span style="font-size:11px;color:var(--text3)">${fmt(sl.pct,2)}%</span>
+        <div style="min-width:0;line-height:1.3">
+          <div style="font-size:13px;font-weight:700">${sl.code}</div>
+          <div style="font-size:11px;color:var(--text3)">${fmt(sl.pct,2)}%</div>
+        </div>
       </div>`).join('');
   }
 
-  // Click/tap
+  // Click/tap: detect ring hit and dispatch to correct slice
   canvas.onclick=null;
   canvas.onclick=function(e){
     const rect=canvas.getBoundingClientRect();
     const ex=(e.clientX-rect.left)*(displaySize/rect.width)-cx;
     const ey=(e.clientY-rect.top)*(displaySize/rect.height)-cy;
     const dist=Math.sqrt(ex*ex+ey*ey);
-    if(dist<r-4||dist>R+PUSH+6){pieSelected=null;rHoldings();return;}
+    // Allow click slightly inside inner radius and outside outer+push
+    if(dist<r*0.85||dist>R+PUSH+6){pieSelected=null;rHoldings();return;}
     let a=Math.atan2(ey,ex)+Math.PI/2; if(a<0)a+=Math.PI*2;
     let ang=0;
     for(const sl of slices){
-      const sweep=Math.max(sl.val/total*Math.PI*2-gap,0.001);
+      const sweep=Math.max(sl.val/total*Math.PI*2-gap,0.002);
       if(a>=ang&&a<ang+sweep+gap){selectPieSlice(sl.code);return;}
       ang+=sweep+gap;
     }
